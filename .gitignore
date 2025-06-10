@@ -1,3 +1,5 @@
+.gitkeep
 /venv
+/build/
 
 __pycache__
