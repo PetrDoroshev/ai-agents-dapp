@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-jose[cryptography]
+eth-account
+jinja2
+web3
