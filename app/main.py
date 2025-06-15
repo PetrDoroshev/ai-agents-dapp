@@ -13,6 +13,7 @@ from eth_account import Account
 import secrets
 import hashlib
 import uuid
+import variables
 
 from app.auth import create_jwt, decode_jwt
 from app.ai_models.run_ai import process_ai_task
@@ -194,7 +195,7 @@ async def buy_tokens(request: Request):
         'gasPrice': w3.eth.gas_price,
     })
 
-    signed_tx = w3.eth.account.sign_transaction(tx, "0x8c9985ba187a4087774f1f6eb2fc9776070babf0194316cbdbc8d4e4f8f3dd62")
+    signed_tx = w3.eth.account.sign_transaction(tx, variables.OWNER_PRIVATE_KEY)
     tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
 
     balance_wei = w3.eth.get_balance(token_address)
@@ -261,7 +262,7 @@ async def prepare_run(
         'gasPrice': gas_price,
     })
 
-    signed_txn = w3.eth.account.sign_transaction(txn, private_key="0x8c9985ba187a4087774f1f6eb2fc9776070babf0194316cbdbc8d4e4f8f3dd62")
+    signed_txn = w3.eth.account.sign_transaction(txn, private_key=variables.OWNER_PRIVATE_KEY)
     tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
 
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
