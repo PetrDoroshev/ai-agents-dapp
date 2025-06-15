@@ -1,8 +1,6 @@
 async function autoLogin() {
 	const jwt = localStorage.getItem("jwt");
 	const result = document.getElementById("result");
-	const balanceLabel = document.getElementById("balance");
-	const balanceLabelTokens = document.getElementById("balance_tokences");
 
 	if (!jwt) return;
 
@@ -25,29 +23,7 @@ async function autoLogin() {
 
         await updateBlockchainData(address, jwt);
 
-		// Load balances again (you can refactor to a function)
-		// const provider = new ethers.providers.Web3Provider(window.ethereum);
-		// const rawBalance = await provider.getBalance(address);
-		// const ethBalance = ethers.utils.formatEther(rawBalance);
-		// balanceLabel.textContent = parseFloat(ethBalance);
-
-		// Get PIT balance from backend
-		// const verifyRes = await fetch("/verify_signature", {
-		// 	method: "POST",
-		// 	headers: { "Content-Type": "application/json" },
-		// 	body: JSON.stringify({ address, signature: "" }) // dummy signature to get balance
-		// });
-
-		// const balanceData = await verifyRes.json();
-		// balanceLabelTokens.textContent = balanceData.PIT_balance;
-
 		console.log("Auto-login completed:", address);
-
-		// const balanceRes = await fetch("/balance", {
-		// 	headers: { "Authorization": `Bearer ${jwt}` }
-		// });
-		// const balanceData = await balanceRes.json();
-		// balanceLabelTokens.textContent = balanceData.PIT_balance;
 
 	} catch (err) {
 		console.log("Auto-login failed:", err.message);
@@ -114,6 +90,8 @@ async function login() {
 		if (data.token) {
 			localStorage.setItem("jwt", data.token);
 			result.textContent = "Logged in as: " + data.address + "\nJWT: " + data.token;
+            const jwt = localStorage.getItem("jwt");
+            await updateBlockchainData(address, jwt);
 		} else {
 			result.textContent = "Login failed.";
 		}
@@ -166,7 +144,6 @@ async function updateBlockchainData(address, jwt) {
         runs.forEach((run, i) => {
             const tr = document.createElement("tr");
 
-            // Optionally convert status enum integer to human-readable string
             const statusMap = ["Requested", "Completed", "Cancelled", "Refunded"];
             const statusText = statusMap[run.status] || `Status #${run.status}`;
 
@@ -216,6 +193,21 @@ async function buyTokens () {
         statusEl.textContent = "Transaction sent…";
         await tx.wait();
         statusEl.textContent = "Tokens purchased!";
+
+        const jwt = localStorage.getItem("jwt");
+        const res = await fetch("/me", {
+			headers: {
+				"Authorization": `Bearer ${jwt}`
+			}
+		});
+
+		if (!res.ok) {
+			throw new Error("JWT invalid or expired");
+		}
+
+		const data = await res.json();
+		const address = data.address;
+        await updateBlockchainData(address, jwt);
 
     } catch (err) {
         console.error(err);
@@ -295,28 +287,20 @@ document.getElementById("catalog").addEventListener("click", async ev => {
 
     const { inputDataLink, inputDataHash, randomState } = upload;
     setCatalogStatus("File uploaded to " + inputDataLink + " with hash " + inputDataHash , true);
-});
+    const res = await fetch("/me", {
+        headers: {
+            "Authorization": `Bearer ${jwt}`
+        }
+    });
 
-async function pollRun(runId) {
-    const resCell = document.getElementById("result");
-    const int = setInterval(async () => {
-        const r = await fetch("/ai/status/" + runId).then(r => r.json());
-        if (r.status.startsWith("done")) {
-        clearInterval(int);
-        alert("Run complete! Result ready.");
-        // optional: refresh /runs table
-        const jwt = localStorage.getItem("jwt");
-        if (jwt) {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const addr = await provider.getSigner().getAddress();
-            await updateBlockchainData(addr, jwt);
-        }
-        } else if (r.status.startsWith("error")) {
-        clearInterval(int);
-        alert("Run failed: " + r.status);
-        }
-    }, 5000);
-}
+    if (!res.ok) {
+        throw new Error("JWT invalid or expired");
+    }
+
+    const data = await res.json();
+    const address = data.address;
+    await updateBlockchainData(address, jwt);
+});
 
 
 document.getElementById("login-btn").addEventListener("click", login);

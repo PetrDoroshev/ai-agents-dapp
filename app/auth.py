@@ -19,5 +19,4 @@ def decode_jwt(token: str) -> Optional[str]:
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except (ExpiredSignatureError, JWTError) as e:
-        # print("JWT decode error:", str(e))  # ✅ Debug print
         return None

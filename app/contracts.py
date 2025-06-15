@@ -20,5 +20,5 @@ contracts = {
     "token": token_contract
 }
 
-for fn in pi_contract.functions:
-    print(fn.fn_name)
+# for fn in pi_contract.functions:
+#     print(fn.fn_name)

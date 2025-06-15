@@ -80,19 +80,4 @@ contract PiContr {
         }
         return out;
     }
-
-
-    function withdraw() external onlyOwner {
-        payable(owner).transfer(address(this).balance);
-    }
-
-    function updateRunPrice(uint256 _newPrice) external onlyOwner {
-        runPriceTokens = _newPrice;
-    }
-
-    function withdrawTo(address payable recipient, uint256 amount) public onlyOwner {
-        require(recipient != address(0), "Invalid recipient");
-        require(address(this).balance >= amount, "Not enough ETH in contract");
-        recipient.transfer(amount);
-    }
 }
