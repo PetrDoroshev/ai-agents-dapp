@@ -1,0 +1,10 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+MAIN_CONTRACT_ADDRESS = os.getenv("MAIN_CONTRACT_ADDRESS")
+TOKEN_CONTRACT_ADDRESS = os.getenv("TOKEN_CONTRACT_ADDRESS")
+OWNER_ADDRESS = os.getenv("OWNER_ADDRESS")
+OWNER_PRIVATE_KEY = os.getenv("OWNER_PRIVATE_KEY")
+RECIPIENT_ADDRESS = os.getenv("RECIPIENT_ADDRESS")

@@ -1,12 +1,13 @@
 from web3 import Web3
 import json
+import variables
 
 provider_url = "http://127.0.0.1:7545"
 
-contract_address = input("Введите адресс контракта для токена: ")
-owner_address = input("Введите адресс владельца (0 аккаунт): ")
-owner_private_key = input("Введите приватный ключ владельца (0 аккаунт): ")
-recipient = input("Введите адресс получателя: ")
+contract_address = variables.TOKEN_CONTRACT_ADDRESS
+owner_address = variables.OWNER_ADDRESS
+owner_private_key = variables.OWNER_PRIVATE_KEY
+recipient = variables.RECIPIENT_ADDRESS
 
 with open("build/contracts/MyToken.json") as f:
     contract_json = json.load(f)
