@@ -9,8 +9,7 @@ module.exports = async function (deployer) {
     await deployer.deploy(MyToken, name, symbol, decimals);
 
     const tokenInstance = await MyToken.deployed();
-    const tokenPrice = web3.utils.toWei("10", "ether");
-
+    const tokenPrice = web3.utils.toWei("0.1", "ether");
 
     await deployer.deploy(PiContr, tokenInstance.address, tokenPrice);
 };

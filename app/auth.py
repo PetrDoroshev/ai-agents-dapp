@@ -1,5 +1,8 @@
 from jose import jwt
 from datetime import datetime, timedelta
+from typing import Optional
+
+from jose.exceptions import ExpiredSignatureError, JWTError
 
 SECRET_KEY = "supersecret"
 ALGORITHM = "HS256"
@@ -12,6 +15,9 @@ def create_jwt(address: str) -> str:
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-def decode_jwt(token: str) -> str:
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    return payload["sub"]
+def decode_jwt(token: str) -> Optional[str]:
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except (ExpiredSignatureError, JWTError) as e:
+        # print("JWT decode error:", str(e))  # ✅ Debug print
+        return None

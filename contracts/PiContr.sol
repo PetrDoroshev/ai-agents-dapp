@@ -5,6 +5,8 @@ pragma solidity 0.8.17;
 import "./IERC20.sol";
 
 contract PiContr {
+    enum Status { Requested, Completed, Cancelled, Refunded }
+
     struct AIRun {
         address requester;
         string inputDataLink;
@@ -12,6 +14,7 @@ contract PiContr {
         string outputDataLink;
         bytes32 outputDataHash;
         string randomState;
+        Status status;
     }
 
     address public owner;
@@ -22,6 +25,7 @@ contract PiContr {
     IERC20 public token;
 
     mapping(uint => AIRun) public runs;
+    mapping(address => uint[]) public userRuns;
 
     event RunRequested(uint256 indexed runId, address indexed requester, string inputDataLink, bytes32 inputDataHash, string randomState);
     event RunCompleted(uint256 indexed runId, string outputDataLink, bytes32 outputDataHash);
@@ -37,17 +41,23 @@ contract PiContr {
         _;
     }
 
-    function requestRun(string memory _inputDataLink, bytes32 _inputDataHash, string memory _randomState) external payable {
-        require(msg.value >= runPriceTokens, "Insufficient payment");
+    function requestRun(address requester, string memory _inputDataLink, bytes32 _inputDataHash, string memory _randomState) external onlyOwner {
+        // require(msg.value >= runPriceTokens, "Insufficient payment");
+        require(token.balanceOf(requester) >= runPriceTokens, "Insufficient Tokens");
+
+        token.transferFrom(requester, address(this), runPriceTokens);
 
         runCounter += 1;
+
+        userRuns[requester].push(runCounter);
         runs[runCounter] = AIRun({
-            requester: msg.sender,
+            requester: requester,
             inputDataLink: _inputDataLink,
             inputDataHash: _inputDataHash,
             outputDataLink: "",
             outputDataHash: 0,
-            randomState: _randomState
+            randomState: _randomState,
+            status: Status.Requested
         });
 
         emit RunRequested(runCounter, msg.sender, _inputDataLink, _inputDataHash, _randomState);
@@ -59,9 +69,20 @@ contract PiContr {
 
         run.outputDataLink = _outputDataLink;
         run.outputDataHash = _outputDataHash;
+        run.status = Status.Completed;
 
         emit RunCompleted(_runId, _outputDataLink, _outputDataHash);
     }
+
+    function runsOf(address user) external view returns (AIRun[] memory) {
+        uint[] storage ids = userRuns[user];
+        AIRun[] memory out = new AIRun[](ids.length);
+        for (uint i = 0; i < ids.length; i++) {
+            out[i] = runs[ids[i]];
+        }
+        return out;
+    }
+
 
     function withdraw() external onlyOwner {
         payable(owner).transfer(address(this).balance);
@@ -69,5 +90,11 @@ contract PiContr {
 
     function updateRunPrice(uint256 _newPrice) external onlyOwner {
         runPriceTokens = _newPrice;
+    }
+
+    function withdrawTo(address payable recipient, uint256 amount) public onlyOwner {
+        require(recipient != address(0), "Invalid recipient");
+        require(address(this).balance >= amount, "Not enough ETH in contract");
+        recipient.transfer(amount);
     }
 }

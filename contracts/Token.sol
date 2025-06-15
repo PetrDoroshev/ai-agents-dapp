@@ -7,9 +7,9 @@ import "./IERC20.sol";
 
 contract MyToken is IERC20 {
     uint256 private constant MAX_UINT256 = 2 ** 256 - 1;
+    uint256 public rate = 1000;
 
     mapping(address => uint256) private _balances;
-
     mapping(address => mapping(address => uint256)) private _allowed;
 
  	string public _name;
@@ -88,5 +88,21 @@ contract MyToken is IERC20 {
 
         emit Transfer(address(0), to, amount);
         return true;
+    }
+
+    receive() external payable {
+        exchangeEthToTokens();
+    }
+
+    function exchangeEthToTokens() public payable {
+        require(msg.value > 0, "Send ETH to buy tokens");
+        uint256 tokenAmount = (msg.value * rate) / 1 ether;
+
+        require(_balances[acc_owner] >= tokenAmount, "Not enough tokens in reserve");
+        
+        _balances[acc_owner] -= tokenAmount;
+        _balances[msg.sender] += tokenAmount;
+
+        emit Transfer(acc_owner, msg.sender, tokenAmount);
     }
 }
