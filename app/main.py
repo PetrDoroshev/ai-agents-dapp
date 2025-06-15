@@ -45,7 +45,7 @@ def index(request: Request):
     balance_eth = w3.from_wei(balance_wei, 'ether')
     print("Contract ETH balance:", balance_eth, "ETH")
 
-    return templates.TemplateResponse("index.html", {"request": request, "contract_address": token_address})
+    return templates.TemplateResponse("index.html", {"request": request, "contract_address": token_address, "pi_contract_address": pi_address})
 
 @app.post("/get_nonce")
 def get_nonce(data: AddressRequest):
@@ -105,17 +105,29 @@ def get_user_runs(request: Request):
         print(e)
         raise HTTPException(status_code=500, detail=f"Failed to fetch runs: {e}")
 
-    # Optional: Format AIRun structs nicely
-    formatted = [
-        {
-            "id": r[0],
-            "score": r[1],
-            "started": r[2]
-        }
-        for r in user_runs
-    ]
+    formatted_runs = [] 
+    for run in user_runs:
+        (
+            requester,
+            input_link,
+            input_hash,
+            output_link,
+            output_hash,
+            random_state,
+            status_int,
+        ) = run
 
-    return {"runs": formatted}
+        formatted_runs.append({
+            "requester":       requester,
+            "status":          int(status_int),           # enum → число (или конвертируйте в строку)
+            "inputDataLink":   input_link,
+            "inputDataHash":   Web3.to_hex(input_hash),
+            "outputDataLink":  output_link,
+            "outputDataHash":  Web3.to_hex(output_hash) if output_hash != b'\x00' * 32 else None,
+            "randomState":     random_state,
+        })
+
+    return {"runs": formatted_runs}
 
 @app.post("/verify_signature")
 def verify_signature(data: SignatureRequest):
@@ -226,6 +238,9 @@ async def prepare_run(
     input_hash = Web3.keccak(contents)
     random_state = uuid.uuid4().hex
 
+    job = next((j for j in CATALOG if j["id"] == job_id), None)
+    assert job is not None
+
     path = f"./app/uploads/{random_state}_{data.filename}"
     with open(path, "wb") as f:
         f.write(contents)
@@ -245,12 +260,22 @@ async def prepare_run(
     nonce = w3.eth.get_transaction_count("0x0565a088f974D9B88C8DD09E268989744ba19aF2")
     gas_price = w3.eth.gas_price
 
+    bal = token_contract.functions.balanceOf(checksum_address).call()
+    print("balance =", bal)
+
+    # 2. Разрешение (allowance) пользователя на контракт
+    allow = token_contract.functions.allowance(checksum_address, pi_contract.address).call()
+    print("allowance =", allow)
+
+    # 3. Цена запуска
+    print("run price =", job["price"])
+
     txn = pi_contract.functions.requestRun(
-        checksum_address, f"/uploads/{path}", input_hash, random_state
+        checksum_address, f"/uploads/{path}", input_hash, random_state, job["price"]
     ).build_transaction({
         'from': "0x0565a088f974D9B88C8DD09E268989744ba19aF2",
         'nonce': nonce,
-        'gas': 300_000,
+        'gas': 800_000,
         'gasPrice': gas_price,
     })
 

@@ -51,8 +51,6 @@ contract MyToken is IERC20 {
     }
 
     function approve(address spender, uint256 value) public returns (bool) {
-       
-
         _allowed[msg.sender][spender] = value;
         emit Approval(msg.sender, spender, value);
         return true;

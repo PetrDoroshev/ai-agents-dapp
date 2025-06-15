@@ -41,11 +41,9 @@ contract PiContr {
         _;
     }
 
-    function requestRun(address requester, string memory _inputDataLink, bytes32 _inputDataHash, string memory _randomState) external onlyOwner {
-        // require(msg.value >= runPriceTokens, "Insufficient payment");
-        require(token.balanceOf(requester) >= runPriceTokens, "Insufficient Tokens");
-
-        token.transferFrom(requester, address(this), runPriceTokens);
+    function requestRun(address requester, string memory _inputDataLink, bytes32 _inputDataHash, string memory _randomState, uint256 thisRunPrice) external onlyOwner {
+        require(token.balanceOf(requester) >= thisRunPrice, "Insufficient Tokens");
+        token.transferFrom(requester, address(this), thisRunPrice);
 
         runCounter += 1;
 

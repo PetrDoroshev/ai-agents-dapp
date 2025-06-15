@@ -165,11 +165,17 @@ async function updateBlockchainData(address, jwt) {
 
         runs.forEach((run, i) => {
             const tr = document.createElement("tr");
+
+            // Optionally convert status enum integer to human-readable string
+            const statusMap = ["Pending", "Running", "Completed", "Failed"];
+            const statusText = statusMap[run.status] || `Status #${run.status}`;
+
             tr.innerHTML = `
                 <td>${i + 1}</td>
-                <td>${run.id}</td>
-                <td>${run.score}</td>
-                <td>${new Date(run.started * 1000).toLocaleString()}</td>
+                <td><a href="${run.inputDataLink}" target="_blank">${run.inputDataHash}</a></td>
+                <td><a href="${run.outputDataLink}" target="_blank">${run.outputDataHash}</a></td>
+                <td>${run.randomState}</td>
+                <td>${statusText}</td>
             `;
             runsTable.appendChild(tr);
         });
@@ -237,7 +243,7 @@ async function loadCatalog() {
             <td>${job.description}</td>
             <td>${job.price}</td>
             <td><input type="file" data-job="${job.id}"></td>
-            <td><button data-job="${job.id}">Buy & Run</button></td>
+            <td><button data-job="${job.id}" data-price="${job.price}">Buy & Run</button></td>
         `;
         tbody.appendChild(tr);
         });
@@ -251,11 +257,28 @@ async function loadCatalog() {
 document.getElementById("catalog").addEventListener("click", async ev => {
     if (ev.target.tagName !== "BUTTON") return;
     const jobId = ev.target.dataset.job;
+    const jobPrice = ev.target.dataset.price;
     const fileInput = document.querySelector(`input[type=file][data-job='${jobId}']`);
     if (!fileInput.files.length) return alert("Choose a file first");
 
     const jwt = localStorage.getItem("jwt");
     if (!jwt) return alert("Login first");
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = provider.getSigner();
+
+    const erc20Abi = [
+        "function approve(address spender, uint256 amount) public returns (bool)"
+    ];
+
+    const tokenContract = new ethers.Contract(contractAddress, erc20Abi, signer);
+
+    console.log("Job price " + String(jobPrice));
+
+    const tx = await tokenContract.approve(piAddress, ethers.utils.parseUnits(String(jobPrice), 18));
+    await tx.wait();
+    console.log("Approved successfully!");
 
     const form = new FormData();
     form.append("job_id", jobId);
