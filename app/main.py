@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi import BackgroundTasks
 from pydantic import BaseModel
 from eth_account.messages import defunct_hash_message
 from eth_account.messages import encode_defunct
@@ -14,6 +15,7 @@ import hashlib
 import uuid
 
 from app.auth import create_jwt, decode_jwt
+from app.ai_models.run_ai import process_ai_task
 
 from app.contracts import token_contract, pi_contract, w3, token_address, pi_address
 
@@ -31,6 +33,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/uploads", StaticFiles(directory="app/uploads"), name="uploads")
+app.mount("/downloads", StaticFiles(directory="app/downloads"), name="downloads")
 
 class AddressRequest(BaseModel):
     address: str
@@ -230,9 +233,9 @@ def ai_catalog():
 @app.post("/ai/prepare_run")
 async def prepare_run(
     request: Request,
+    background_tasks: BackgroundTasks,
     job_id: str = Form(...),
-    data: UploadFile = File(...)
-):
+    data: UploadFile = File(...)):
     user = _jwt_user(request)                      # same JWT helper
     contents = await data.read()
     input_hash = Web3.keccak(contents)
@@ -241,8 +244,10 @@ async def prepare_run(
     job = next((j for j in CATALOG if j["id"] == job_id), None)
     assert job is not None
 
-    path = f"./app/uploads/{random_state}_{data.filename}"
-    with open(path, "wb") as f:
+    new_file_name = f"{random_state}_{data.filename}"
+
+    cont_path = f"./app/uploads/{new_file_name}"
+    with open(cont_path, "wb") as f:
         f.write(contents)
 
     auth_header = request.headers.get("Authorization")
@@ -271,7 +276,7 @@ async def prepare_run(
     print("run price =", job["price"])
 
     txn = pi_contract.functions.requestRun(
-        checksum_address, f"/uploads/{path}", input_hash, random_state, job["price"]
+        checksum_address, f"/uploads/{new_file_name}", input_hash, random_state, job["price"]
     ).build_transaction({
         'from': "0x0565a088f974D9B88C8DD09E268989744ba19aF2",
         'nonce': nonce,
@@ -280,7 +285,23 @@ async def prepare_run(
     })
 
     signed_txn = w3.eth.account.sign_transaction(txn, private_key="0x8c9985ba187a4087774f1f6eb2fc9776070babf0194316cbdbc8d4e4f8f3dd62")
-    w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    logs = pi_contract.events.RunRequested().process_receipt(receipt)
+    if not logs:
+        print("RunRequested event not found")
+
+    run_id = logs[0]["args"]["runId"]
+    background_tasks.add_task(
+        process_ai_task,
+        run_id=run_id,
+        job_id=job_id,
+        input_path=new_file_name,
+        requester=checksum_address,
+        random_state=random_state
+    )
     
     return {
         "inputDataLink": f"/uploads/{random_state}_{data.filename}",

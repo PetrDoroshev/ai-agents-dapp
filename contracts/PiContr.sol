@@ -61,13 +61,13 @@ contract PiContr {
         emit RunRequested(runCounter, msg.sender, _inputDataLink, _inputDataHash, _randomState);
     }
 
-    function submitRunResult(uint256 _runId, string memory _outputDataLink, bytes32 _outputDataHash) external onlyOwner {
+    function submitRunResult(uint256 _runId, string memory _outputDataLink, bytes32 _outputDataHash, Status _newStatus) external onlyOwner {
         AIRun storage run = runs[_runId];
         require(run.requester != address(0), "Run does not exist");
 
         run.outputDataLink = _outputDataLink;
         run.outputDataHash = _outputDataHash;
-        run.status = Status.Completed;
+        run.status = _newStatus;
 
         emit RunCompleted(_runId, _outputDataLink, _outputDataHash);
     }

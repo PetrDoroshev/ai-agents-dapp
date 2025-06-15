@@ -167,7 +167,7 @@ async function updateBlockchainData(address, jwt) {
             const tr = document.createElement("tr");
 
             // Optionally convert status enum integer to human-readable string
-            const statusMap = ["Pending", "Running", "Completed", "Failed"];
+            const statusMap = ["Requested", "Completed", "Cancelled", "Refunded"];
             const statusText = statusMap[run.status] || `Status #${run.status}`;
 
             tr.innerHTML = `
