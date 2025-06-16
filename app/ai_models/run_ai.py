@@ -1,3 +1,4 @@
+import variables
 from app.ai_models.models import execute_style_transfer, execute_object_detection
 from app.contracts import token_contract, pi_contract, w3, token_address, pi_address
 
@@ -31,7 +32,7 @@ async def process_ai_task(
                 output_hash = Web3.keccak(f.read())
             
             # Update blockchain with results
-            nonce = w3.eth.get_transaction_count("0x0565a088f974D9B88C8DD09E268989744ba19aF2")
+            nonce = w3.eth.get_transaction_count(variables.OWNER_ADDRESS)
             gas_price = w3.eth.gas_price
             
             txn = pi_contract.functions.submitRunResult(
@@ -40,18 +41,18 @@ async def process_ai_task(
                 Web3.keccak(open(f"./app/downloads/{output_path}", "rb").read()),
                 1
             ).build_transaction({
-                'from': "0x0565a088f974D9B88C8DD09E268989744ba19aF2",
+                'from': variables.OWNER_ADDRESS,
                 'nonce': nonce,
                 'gas': 800_000,
                 'gasPrice': gas_price,
             })
             
-            signed_txn = w3.eth.account.sign_transaction(txn, private_key="0x8c9985ba187a4087774f1f6eb2fc9776070babf0194316cbdbc8d4e4f8f3dd62")
+            signed_txn = w3.eth.account.sign_transaction(txn, private_key=variables.OWNER_PRIVATE_KEY)
             tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
             
             print(f"Run {run_id} completed successfully. TX hash: {tx_hash.hex()}")
         else:
-            nonce = w3.eth.get_transaction_count("0x0565a088f974D9B88C8DD09E268989744ba19aF2")
+            nonce = w3.eth.get_transaction_count(variables.OWNER_ADDRESS)
             gas_price = w3.eth.gas_price
             
             txn = pi_contract.functions.submitRunResult(
@@ -60,13 +61,13 @@ async def process_ai_task(
                 b'\x00' * 32,
                 2
             ).build_transaction({
-                'from': "0x0565a088f974D9B88C8DD09E268989744ba19aF2",
+                'from': variables.OWNER_ADDRESS,
                 'nonce': nonce,
                 'gas': 800_000,
                 'gasPrice': gas_price,
             })
             
-            signed_txn = w3.eth.account.sign_transaction(txn, private_key="0x8c9985ba187a4087774f1f6eb2fc9776070babf0194316cbdbc8d4e4f8f3dd62")
+            signed_txn = w3.eth.account.sign_transaction(txn, private_key=variables.OWNER_PRIVATE_KEY)
             tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
             
             print(f"Run {run_id} failed. TX hash: {tx_hash.hex()}")
