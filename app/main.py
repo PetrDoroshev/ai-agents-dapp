@@ -21,8 +21,8 @@ from app.ai_models.run_ai import process_ai_task
 from app.contracts import token_contract, pi_contract, w3, token_address, pi_address
 
 CATALOG = [
-    {"id": "style", "name": "Style-Transfer", "description": "Apply Van-Gogh style", "price": 500},
-    {"id": "detect", "name": "Object-Detect", "description": "YOLOv8",             "price": 100},
+    {"id": "chat_ds", "name": "Ask deepseek", "description": "Promt to deepseek to process", "price": 100},
+    {"id": "yolo8_dt", "name": "Yolo8 detection", "description": "Detect basic classes on image using YOLO", "price": 500},
 ]
 
 RUNS = {}
@@ -280,12 +280,6 @@ async def prepare_run(
         requester=checksum_address,
         random_state=random_state
     )
-    
-    return {
-        "inputDataLink": f"/uploads/{random_state}_{data.filename}",
-        "inputDataHash": input_hash.hex(),
-        "randomState": random_state,
-    }
 
 def _jwt_user(request: Request) -> str:
     """Extract user address from JWT in Authorization header."""

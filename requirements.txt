@@ -1,6 +1,9 @@
+cryptography
+dotenv
 fastapi
+pip-chill
+python-jose
+python-multipart
+ultralytics
 uvicorn
-python-jose[cryptography]
-eth-account
-jinja2
 web3

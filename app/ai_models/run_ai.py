@@ -1,5 +1,5 @@
 import variables
-from app.ai_models.models import execute_style_transfer, execute_object_detection
+from app.ai_models.models import execute_deepseek, execute_object_detection
 from app.contracts import token_contract, pi_contract, w3, token_address, pi_address
 
 from web3 import Web3
@@ -19,9 +19,9 @@ async def process_ai_task(
         print(new_input_path)
         print(new_output_path)
 
-        if job_id == "style":
-            success = await execute_style_transfer(new_input_path, new_output_path)
-        elif job_id == "detect":
+        if job_id == "chat_ds":
+            success = await execute_deepseek(new_input_path, new_output_path)
+        elif job_id == "yolo8_dt":
             success = await execute_object_detection(new_input_path, new_output_path)
         else:
             success = False
@@ -73,4 +73,21 @@ async def process_ai_task(
             print(f"Run {run_id} failed. TX hash: {tx_hash.hex()}")
             
     except Exception as e:
+        nonce = w3.eth.get_transaction_count(variables.OWNER_ADDRESS)
+        gas_price = w3.eth.gas_price
+        
+        txn = pi_contract.functions.submitRunResult(
+            run_id,
+            "",
+            b'\x00' * 32,
+            2
+        ).build_transaction({
+            'from': variables.OWNER_ADDRESS,
+            'nonce': nonce,
+            'gas': 800_000,
+            'gasPrice': gas_price,
+        })
+        
+        signed_txn = w3.eth.account.sign_transaction(txn, private_key=variables.OWNER_PRIVATE_KEY)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
         print(f"Error processing AI task {run_id}: {str(e)}")
