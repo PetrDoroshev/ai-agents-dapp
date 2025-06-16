@@ -240,7 +240,7 @@ async def prepare_run(
     address = payload["sub"]
     checksum_address = Web3.to_checksum_address(address)
 
-    nonce = w3.eth.get_transaction_count("0x0565a088f974D9B88C8DD09E268989744ba19aF2")
+    nonce = w3.eth.get_transaction_count(variables.OWNER_ADDRESS)
     gas_price = w3.eth.gas_price
 
     bal = token_contract.functions.balanceOf(checksum_address).call()
@@ -256,7 +256,7 @@ async def prepare_run(
     txn = pi_contract.functions.requestRun(
         checksum_address, f"/uploads/{new_file_name}", input_hash, random_state, job["price"]
     ).build_transaction({
-        'from': "0x0565a088f974D9B88C8DD09E268989744ba19aF2",
+        'from': variables.OWNER_ADDRESS,
         'nonce': nonce,
         'gas': 800_000,
         'gasPrice': gas_price,
